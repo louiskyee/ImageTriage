@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Triage</title>
+    <title>ImageTriage - Efficient Photo Sorting Tool</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -30,14 +30,21 @@
             font-size: 1.2em;
             margin-bottom: 20px;
         }
-        #folder-input {
+        .input-container {
             margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>Photo Sorting Tool</h1>
-    <input type="file" id="folder-input" webkitdirectory directory multiple>
+    <h1>ImageTriage</h1>
+    <div class="input-container">
+        <button id="select-source">Select Source Folder</button>
+        <span id="source-folder"></span>
+    </div>
+    <div class="input-container">
+        <button id="select-deny">Select Deny Folder</button>
+        <span id="deny-folder"></span>
+    </div>
     <div id="status"></div>
     <img id="photo" src="" alt="Current photo">
     <div class="button-container">
@@ -48,37 +55,58 @@
         <button onclick="decidePhoto('pass')">Pass</button>
         <button onclick="decidePhoto('deny')">Deny</button>
     </div>
-    <a id="download-link" style="display: none;">Download denied photos</a>
 
     <script>
         let photos = [];
         let currentIndex = 0;
-        let deniedPhotos = [];
+        let sourceFolder;
+        let denyFolder;
 
-        document.getElementById('folder-input').addEventListener('change', handleFolderSelect);
+        document.getElementById('select-source').addEventListener('click', selectSourceFolder);
+        document.getElementById('select-deny').addEventListener('click', selectDenyFolder);
 
-        function handleFolderSelect(event) {
-            const files = event.target.files;
-            photos = Array.from(files).filter(file => file.type.startsWith('image/'));
+        async function selectSourceFolder() {
+            try {
+                sourceFolder = await window.showDirectoryPicker();
+                document.getElementById('source-folder').textContent = sourceFolder.name;
+                loadPhotos();
+            } catch (err) {
+                console.error('Error selecting source folder:', err);
+            }
+        }
+
+        async function selectDenyFolder() {
+            try {
+                denyFolder = await window.showDirectoryPicker();
+                document.getElementById('deny-folder').textContent = denyFolder.name;
+            } catch (err) {
+                console.error('Error selecting deny folder:', err);
+            }
+        }
+
+        async function loadPhotos() {
+            photos = [];
+            for await (const entry of sourceFolder.values()) {
+                if (entry.kind === 'file' && entry.name.match(/\.(jpe?g|png|gif)$/i)) {
+                    photos.push(entry);
+                }
+            }
             currentIndex = 0;
-            deniedPhotos = [];
             showPhoto();
         }
 
-        function showPhoto() {
+        async function showPhoto() {
             if (currentIndex < photos.length) {
+                const file = await photos[currentIndex].getFile();
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('photo').src = e.target.result;
                 }
-                reader.readAsDataURL(photos[currentIndex]);
+                reader.readAsDataURL(file);
                 updateStatus();
             } else {
                 document.getElementById('photo').src = '';
                 document.getElementById('status').textContent = 'No more photos to sort!';
-                if (deniedPhotos.length > 0) {
-                    document.getElementById('download-link').style.display = 'inline';
-                }
             }
         }
 
@@ -95,40 +123,32 @@
             showPhoto();
         }
 
-        function decidePhoto(decision) {
+        async function decidePhoto(decision) {
             if (decision === 'deny') {
-                deniedPhotos.push(photos[currentIndex]);
-                photos.splice(currentIndex, 1);
-                if (currentIndex >= photos.length) {
-                    currentIndex = photos.length - 1;
+                if (!denyFolder) {
+                    alert('Please select a deny folder first.');
+                    return;
+                }
+                try {
+                    const file = await photos[currentIndex].getFile();
+                    const newHandle = await denyFolder.getFileHandle(photos[currentIndex].name, { create: true });
+                    const writable = await newHandle.createWritable();
+                    await writable.write(file);
+                    await writable.close();
+                    await photos[currentIndex].remove();
+                    photos.splice(currentIndex, 1);
+                    if (currentIndex >= photos.length) {
+                        currentIndex = photos.length - 1;
+                    }
+                } catch (err) {
+                    console.error('Error moving file:', err);
+                    alert('Error moving file. Please check console for details.');
                 }
             } else {
                 currentIndex++;
             }
             showPhoto();
         }
-
-        document.getElementById('download-link').addEventListener('click', function() {
-            const zip = new JSZip();
-            const promises = deniedPhotos.map((file, index) => {
-                return new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        zip.file(`denied_photo_${index + 1}.${file.name.split('.').pop()}`, e.target.result.split(',')[1], {base64: true});
-                        resolve();
-                    }
-                    reader.readAsDataURL(file);
-                });
-            });
-
-            Promise.all(promises).then(() => {
-                zip.generateAsync({type:"blob"}).then(function(content) {
-                    saveAs(content, "denied_photos.zip");
-                });
-            });
-        });
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </body>
 </html>
