@@ -3,59 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ImageTriage - Efficient Photo Sorting Tool</title>
+    <title>ImageTriage</title>
     <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --background-color: #f0f4f8;
+            --text-color: #333;
+        }
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            max-width: 800px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1000px;
             margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 2.5em;
+            margin-bottom: 30px;
+        }
+        .input-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            border-radius: 5px;
+            margin: 0 10px;
+        }
+        .btn:hover {
+            background-color: #3a7bc8;
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #photo-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+        #photo-container:hover {
+            transform: translateY(-5px);
         }
         #photo {
             max-width: 100%;
             max-height: 60vh;
-            margin-bottom: 20px;
-        }
-        .button-container {
-            margin-bottom: 20px;
-        }
-        button {
-            font-size: 1.2em;
-            margin: 0 10px;
-            padding: 10px 20px;
-            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+            border-radius: 5px;
         }
         #status {
+            text-align: center;
             font-size: 1.2em;
             margin-bottom: 20px;
+            font-weight: bold;
+            color: var(--primary-color);
         }
-        .input-container {
+        .button-container {
+            display: flex;
+            justify-content: center;
             margin-bottom: 20px;
+        }
+        #deny {
+            background-color: var(--secondary-color);
+        }
+        #deny:hover {
+            background-color: #e09613;
+        }
+        .folder-name {
+            background-color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-left: 10px;
+            font-size: 0.9em;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
         }
     </style>
 </head>
 <body>
-    <h1>ImageTriage</h1>
-    <div class="input-container">
-        <button id="select-source">Select Source Folder</button>
-        <span id="source-folder"></span>
-    </div>
-    <div class="input-container">
-        <button id="select-deny">Select Deny Folder</button>
-        <span id="deny-folder"></span>
-    </div>
-    <div id="status"></div>
-    <img id="photo" src="" alt="Current photo">
-    <div class="button-container">
-        <button onclick="navigate('previous')">Previous</button>
-        <button onclick="navigate('next')">Next</button>
-    </div>
-    <div class="button-container">
-        <button onclick="decidePhoto('pass')">Pass</button>
-        <button onclick="decidePhoto('deny')">Deny</button>
-    </div>
+    <div class="container">
+        <h1>ImageTriage</h1>
 
+        <div class="input-container">
+            <button id="select-source" class="btn">Select Source Folder</button>
+            <span id="source-folder" class="folder-name"></span>
+        </div>
+
+        <div class="input-container">
+            <button id="select-deny" class="btn">Select Deny Folder</button>
+            <span id="deny-folder" class="folder-name"></span>
+        </div>
+
+        <div id="status"></div>
+
+        <div id="photo-container">
+            <img id="photo" src="" alt="Current photo" class="fade-in">
+        </div>
+
+        <div class="button-container">
+            <button id="previous" class="btn" disabled>Previous</button>
+            <button id="next" class="btn" disabled>Next</button>
+        </div>
+
+        <div class="button-container">
+            <button id="deny" class="btn" disabled>Deny</button>
+        </div>
+    </div>
+    
     <script>
         let photos = [];
         let currentIndex = 0;
