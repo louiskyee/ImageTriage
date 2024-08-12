@@ -141,19 +141,30 @@
     </div>
     
     <script>
+        let sourceFolder, denyFolder;
         let photos = [];
         let currentIndex = 0;
-        let sourceFolder;
-        let denyFolder;
 
-        document.getElementById('select-source').addEventListener('click', selectSourceFolder);
-        document.getElementById('select-deny').addEventListener('click', selectDenyFolder);
+        const sourceFolderBtn = document.getElementById('select-source');
+        const denyFolderBtn = document.getElementById('select-deny');
+        const previousBtn = document.getElementById('previous');
+        const nextBtn = document.getElementById('next');
+        const denyBtn = document.getElementById('deny');
+        const statusDiv = document.getElementById('status');
+        const photoImg = document.getElementById('photo');
+
+        sourceFolderBtn.addEventListener('click', selectSourceFolder);
+        denyFolderBtn.addEventListener('click', selectDenyFolder);
+        previousBtn.addEventListener('click', () => navigate('previous'));
+        nextBtn.addEventListener('click', () => navigate('next'));
+        denyBtn.addEventListener('click', denyPhoto);
 
         async function selectSourceFolder() {
             try {
                 sourceFolder = await window.showDirectoryPicker();
                 document.getElementById('source-folder').textContent = sourceFolder.name;
-                loadPhotos();
+                await loadPhotos();
+                checkFoldersSelected();
             } catch (err) {
                 console.error('Error selecting source folder:', err);
             }
@@ -163,8 +174,19 @@
             try {
                 denyFolder = await window.showDirectoryPicker();
                 document.getElementById('deny-folder').textContent = denyFolder.name;
+                checkFoldersSelected();
             } catch (err) {
                 console.error('Error selecting deny folder:', err);
+            }
+        }
+
+        function checkFoldersSelected() {
+            const bothSelected = sourceFolder && denyFolder;
+            previousBtn.disabled = !bothSelected;
+            nextBtn.disabled = !bothSelected;
+            denyBtn.disabled = !bothSelected;
+            if (bothSelected) {
+                showPhoto();
             }
         }
 
@@ -176,7 +198,6 @@
                 }
             }
             currentIndex = 0;
-            showPhoto();
         }
 
         async function showPhoto() {
@@ -184,18 +205,18 @@
                 const file = await photos[currentIndex].getFile();
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById('photo').src = e.target.result;
+                    photoImg.src = e.target.result;
                 }
                 reader.readAsDataURL(file);
                 updateStatus();
             } else {
-                document.getElementById('photo').src = '';
-                document.getElementById('status').textContent = 'No more photos to sort!';
+                photoImg.src = '';
+                statusDiv.textContent = 'No more photos to sort!';
             }
         }
 
         function updateStatus() {
-            document.getElementById('status').textContent = `Photo ${currentIndex + 1} of ${photos.length}`;
+            statusDiv.textContent = `Photo ${currentIndex + 1} of ${photos.length}`;
         }
 
         function navigate(direction) {
@@ -207,31 +228,23 @@
             showPhoto();
         }
 
-        async function decidePhoto(decision) {
-            if (decision === 'deny') {
-                if (!denyFolder) {
-                    alert('Please select a deny folder first.');
-                    return;
+        async function denyPhoto() {
+            try {
+                const file = await photos[currentIndex].getFile();
+                const newHandle = await denyFolder.getFileHandle(photos[currentIndex].name, { create: true });
+                const writable = await newHandle.createWritable();
+                await writable.write(file);
+                await writable.close();
+                await photos[currentIndex].remove();
+                photos.splice(currentIndex, 1);
+                if (currentIndex >= photos.length) {
+                    currentIndex = photos.length - 1;
                 }
-                try {
-                    const file = await photos[currentIndex].getFile();
-                    const newHandle = await denyFolder.getFileHandle(photos[currentIndex].name, { create: true });
-                    const writable = await newHandle.createWritable();
-                    await writable.write(file);
-                    await writable.close();
-                    await photos[currentIndex].remove();
-                    photos.splice(currentIndex, 1);
-                    if (currentIndex >= photos.length) {
-                        currentIndex = photos.length - 1;
-                    }
-                } catch (err) {
-                    console.error('Error moving file:', err);
-                    alert('Error moving file. Please check console for details.');
-                }
-            } else {
-                currentIndex++;
+                showPhoto();
+            } catch (err) {
+                console.error('Error moving file:', err);
+                alert('Error moving file. Please check console for details.');
             }
-            showPhoto();
         }
     </script>
 </body>
