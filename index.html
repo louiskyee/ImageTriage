@@ -5,51 +5,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ImageTriage</title>
     <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --background-color: #f0f4f8;
+            --text-color: #333;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 2.5em;
+            margin-bottom: 30px;
+        }
+        .input-container {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
+            margin-bottom: 20px;
         }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            border-radius: 5px;
+            margin: 0 10px;
         }
-        .input-container {
-            margin-bottom: 10px;
+        .btn:hover {
+            background-color: #3a7bc8;
         }
-        .folder-name {
-            font-weight: bold;
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
         }
         #photo-container {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.3s;
         }
-        .photo {
-            max-width: 45%;
-            height: auto;
+        #photo-container:hover {
+            transform: translateY(-5px);
+        }
+        #photo {
+            max-width: 100%;
+            max-height: 60vh;
+            display: block;
+            margin: 0 auto;
+            border-radius: 5px;
+        }
+        #status {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: var(--primary-color);
         }
         .button-container {
             display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
         }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
+        #move {
+            background-color: var(--secondary-color);
         }
-        .fade-in {
-            animation: fadeIn 0.5s;
+        #move:hover {
+            background-color: #e09613;
+        }
+        .folder-name {
+            background-color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-left: 10px;
+            font-size: 0.9em;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        .image-pair {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .image-wrapper {
+            width: 48%;
+        }
+        .image-wrapper img {
+            max-width: 100%;
+            height: auto;
         }
     </style>
 </head>
@@ -58,163 +127,182 @@
         <h1>ImageTriage</h1>
 
         <div class="input-container">
-            <label for="source-folder">Select Source Folder:</label>
-            <input type="file" id="source-folder" webkitdirectory directory multiple>
-            <span id="source-folder-name" class="folder-name"></span>
+            <label for="original-folder">Select Original Images Folder</label>
+            <span id="original-folder" class="folder-name"></span>
         </div>
 
         <div class="input-container">
-            <label for="bg-removal-folder">Select Background Removal Folder:</label>
-            <input type="file" id="bg-removal-folder" webkitdirectory directory multiple>
-            <span id="bg-removal-folder-name" class="folder-name"></span>
+            <label for="bg-removal-folder">Select Background Removal Folder</label>
+            <span id="bg-removal-folder" class="folder-name"></span>
         </div>
 
         <div class="input-container">
-            <label for="dest-folder">Select Destination Folder:</label>
-            <input type="file" id="dest-folder" webkitdirectory directory multiple>
-            <span id="dest-folder-name" class="folder-name"></span>
+            <label for="dest-folder">Select Dest Folder</label>
+            <span id="dest-folder" class="folder-name"></span>
         </div>
 
         <div id="status"></div>
 
         <div id="photo-container">
-            <img id="original-photo" class="photo fade-in" alt="Original photo">
-            <img id="bg-removal-photo" class="photo fade-in" alt="Background removed photo">
+            <div class="image-pair">
+                <div class="image-wrapper">
+                    <h3>Original Image</h3>
+                    <img id="original-photo" class="fade-in" alt="Original photo" src="">
+                </div>
+                <div class="image-wrapper">
+                    <h3>Background Removed</h3>
+                    <img id="bg-removed-photo" class="fade-in" alt="Background removed photo" src="">
+                </div>
+            </div>
         </div>
 
         <div class="button-container">
-            <button id="previous-button">Previous</button>
-            <button id="next-button">Next</button>
+            <button id="previous">Previous</button>
+            <button id="next">Next</button>
         </div>
 
         <div class="button-container">
-            <button id="move-button">Move</button>
+            <button id="move">Move</button>
         </div>
     </div>
 
     <script>
-        let sourceFiles = [];
-        let bgRemovalFiles = [];
+        // Global variables to store folder paths and current image index
+        let originalFolder = '';
+        let bgRemovalFolder = '';
+        let destFolder = '';
         let currentIndex = 0;
-        let destFolder;
+        let imageFiles = [];
 
-        const sourceFolderInput = document.getElementById('source-folder');
-        const bgRemovalFolderInput = document.getElementById('bg-removal-folder');
-        const destFolderInput = document.getElementById('dest-folder');
-        const sourceFolderName = document.getElementById('source-folder-name');
-        const bgRemovalFolderName = document.getElementById('bg-removal-folder-name');
-        const destFolderName = document.getElementById('dest-folder-name');
-        const statusElement = document.getElementById('status');
-        const originalPhoto = document.getElementById('original-photo');
-        const bgRemovalPhoto = document.getElementById('bg-removal-photo');
-        const previousButton = document.getElementById('previous-button');
-        const nextButton = document.getElementById('next-button');
-        const moveButton = document.getElementById('move-button');
+        // Function to handle folder selection
+        function handleFolderSelection(folderId) {
+            return async () => {
+                try {
+                    const folderPath = await window.showDirectoryPicker();
+                    document.getElementById(folderId).textContent = folderPath.name;
+                    if (folderId === 'original-folder') originalFolder = folderPath;
+                    else if (folderId === 'bg-removal-folder') bgRemovalFolder = folderPath;
+                    else if (folderId === 'dest-folder') destFolder = folderPath;
 
-        sourceFolderInput.addEventListener('change', handleSourceFolderSelect);
-        bgRemovalFolderInput.addEventListener('change', handleBgRemovalFolderSelect);
-        destFolderInput.addEventListener('change', handleDestFolderSelect);
-        previousButton.addEventListener('click', showPreviousImage);
-        nextButton.addEventListener('click', showNextImage);
-        moveButton.addEventListener('click', moveCurrentImage);
+                    if (bgRemovalFolder) {
+                        await loadImages();
+                    }
+                } catch (err) {
+                    console.error('Error selecting folder:', err);
+                }
+            };
+        }
 
-        async function handleSourceFolderSelect() {
-            const dirHandle = await window.showDirectoryPicker();
-            sourceFiles = [];
-            for await (const entry of dirHandle.values()) {
+        // Function to load images from selected folders
+        async function loadImages() {
+            imageFiles = [];
+            for await (const entry of bgRemovalFolder.values()) {
                 if (entry.kind === 'file' && entry.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
-                    sourceFiles.push(entry);
+                    imageFiles.push(entry.name);
                 }
             }
-            sourceFolderName.textContent = dirHandle.name;
-            updateStatus();
-            showCurrentImage();
+            currentIndex = 0;
+            await displayCurrentImage();
         }
 
-        async function handleBgRemovalFolderSelect() {
-            const dirHandle = await window.showDirectoryPicker();
-            bgRemovalFiles = [];
-            for await (const entry of dirHandle.values()) {
-                if (entry.kind === 'file' && entry.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
-                    bgRemovalFiles.push(entry);
+        async function findOriginalFile(originalFolder, baseFileName) {
+            const extensions = ['jpg', 'jpeg', 'png'];
+            for (const ext of extensions) {
+                const fileNameWithExt = `${baseFileName}.${ext}`;
+                try {
+                    const fileHandle = await originalFolder.getFileHandle(fileNameWithExt);
+                    return await fileHandle.getFile();
+                } catch (error) {
+                    // File not found, try next extension
+                    continue;
                 }
             }
-            bgRemovalFolderName.textContent = dirHandle.name;
-            updateStatus();
-            showCurrentImage();
+            throw new Error(`File not found for base name: ${baseFileName}`);
         }
 
-        async function handleDestFolderSelect() {
-            destFolder = await window.showDirectoryPicker();
-            destFolderName.textContent = destFolder.name;
-            updateStatus();
-        }
+        // Function to display current image pair
+        async function displayCurrentImage() {
+            if (imageFiles.length === 0) return;
 
-        function updateStatus() {
-            statusElement.textContent = `${sourceFiles.length} images in source folder, ${bgRemovalFiles.length} images in background removal folder`;
-        }
+            const originalImg = document.getElementById('original-photo');
+            const bgRemovedImg = document.getElementById('bg-removed-photo');
 
-        async function showCurrentImage() {
-            if (sourceFiles.length > 0 && bgRemovalFiles.length > 0) {
-                const sourceFile = await sourceFiles[currentIndex].getFile();
-                const bgRemovalFile = await bgRemovalFiles[currentIndex].getFile();
+            try {
+                const originalFileName = imageFiles[currentIndex].split('.').slice(0, -1).join('.');
+                const originalBlob = await findOriginalFile(originalFolder, originalFileName);
+                originalImg.src = URL.createObjectURL(originalBlob);
 
-                originalPhoto.src = URL.createObjectURL(sourceFile);
-                bgRemovalPhoto.src = URL.createObjectURL(bgRemovalFile);
+                // Assuming the background removed image has the same name but potentially different extension
+                const bgRemovedFileName = imageFiles[currentIndex].split('.').slice(0, -1).join('.') + '.png';
+                const bgRemovedFile = await bgRemovalFolder.getFileHandle(bgRemovedFileName);
+                const bgRemovedBlob = await bgRemovedFile.getFile();
+                bgRemovedImg.src = URL.createObjectURL(bgRemovedBlob);
 
-                originalPhoto.onload = () => URL.revokeObjectURL(originalPhoto.src);
-                bgRemovalPhoto.onload = () => URL.revokeObjectURL(bgRemovalPhoto.src);
+                document.getElementById('status').textContent = `Image ${currentIndex + 1} of ${imageFiles.length}`;
+            } catch (err) {
+                console.error('Error displaying image:', err);
+                document.getElementById('status').textContent = 'Error displaying image';
             }
         }
 
-        function showPreviousImage() {
+        // Function to move to the next image
+        function nextImage() {
+            if (currentIndex < imageFiles.length - 1) {
+                currentIndex++;
+                displayCurrentImage();
+            }
+        }
+
+        // Function to move to the previous image
+        function previousImage() {
             if (currentIndex > 0) {
                 currentIndex--;
-                showCurrentImage();
+                displayCurrentImage();
             }
         }
 
-        function showNextImage() {
-            if (currentIndex < sourceFiles.length - 1) {
-                currentIndex++;
-                showCurrentImage();
-            }
-        }
+        // Function to dest the current image
+        async function moveImage() {
+            if (imageFiles.length === 0) return;
 
-        async function moveCurrentImage() {
-            if (bgRemovalFiles.length > 0 && destFolder) {
-                try {
-                    await moveFile(bgRemovalFiles[currentIndex], destFolder);
-
-                    bgRemovalFiles.splice(currentIndex, 1);
-                    sourceFiles.splice(currentIndex, 1);
-
-                    if (currentIndex >= bgRemovalFiles.length) {
-                        currentIndex = bgRemovalFiles.length - 1;
-                    }
-
-                    updateStatus();
-                    showCurrentImage();
-                } catch (error) {
-                    console.error('Error moving file:', error);
-                    statusElement.textContent = 'Error moving file';
-                }
-            }
-        }
-
-        async function moveFile(fileHandle, destFolderHandle) {
             try {
-                const file = await fileHandle.getFile();
-                const newHandle = await destFolderHandle.getFileHandle(fileHandle.name, { create: true });
-                const writable = await newHandle.createWritable();
-                await writable.write(file);
+                const fileName = imageFiles[currentIndex];
+                const originalFile = await originalFolder.getFileHandle(fileName);
+                const moveFile = await destFolder.getFileHandle(fileName, { create: true });
+
+                const originalBlob = await originalFile.getFile();
+                const writable = await moveFile.createWritable();
+                await writable.write(originalBlob);
                 await writable.close();
-                await fileHandle.remove();
+
+                // Remove the file from the original folder
+                await originalFolder.removeEntry(fileName);
+
+                // Remove the corresponding background-removed image
+                const bgRemovedFileName = fileName.split('.').slice(0, -1).join('.') + '.png';
+                await bgRemovalFolder.removeEntry(bgRemovedFileName);
+
+                // Update the image list and display
+                imageFiles.splice(currentIndex, 1);
+                if (currentIndex >= imageFiles.length) currentIndex = imageFiles.length - 1;
+                if (currentIndex < 0) currentIndex = 0;
+                await displayCurrentImage();
             } catch (err) {
-                console.error('Error moving file:', err);
-                throw err;
+                console.error('Error moving image:', err);
+                document.getElementById('status').textContent = 'Error moving image';
             }
         }
+
+        // Event listeners
+        document.getElementById('original-folder').addEventListener('click', handleFolderSelection('original-folder'));
+        document.getElementById('bg-removal-folder').addEventListener('click', handleFolderSelection('bg-removal-folder'));
+        document.getElementById('dest-folder').addEventListener('click', handleFolderSelection('dest-folder'));
+        document.getElementById('previous').addEventListener('click', previousImage);
+        document.getElementById('next').addEventListener('click', nextImage);
+        document.getElementById('move').addEventListener('click', moveImage);
+
+        // Initial setup
+        document.getElementById('status').textContent = 'Please select folders to begin';
     </script>
 </body>
 </html>
