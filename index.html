@@ -87,26 +87,28 @@
             justify-content: center;
             margin-bottom: 20px;
         }
+        .nav-buttons {
+            display: flex;
+            gap: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
         #move {
             background-color: var(--secondary-color);
         }
         #move:hover {
             background-color: #e09613;
-        }
-        .folder-name {
-            background-color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
-            margin-left: 10px;
-            font-size: 0.9em;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
         }
         .image-pair {
             display: flex;
@@ -120,6 +122,13 @@
             max-width: 100%;
             height: auto;
         }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
     </style>
 </head>
 <body>
@@ -127,18 +136,15 @@
         <h1>ImageTriage</h1>
 
         <div class="input-container">
-            <label for="original-folder">Select Original Images Folder</label>
-            <span id="original-folder" class="folder-name"></span>
+            <button class="btn" id="original-folder">Select Original Images Folder</button>
         </div>
 
         <div class="input-container">
-            <label for="bg-removal-folder">Select Background Removal Folder</label>
-            <span id="bg-removal-folder" class="folder-name"></span>
+            <button class="btn" id="bg-removal-folder">Select Background Removed Images Folder</button>
         </div>
 
         <div class="input-container">
-            <label for="dest-folder">Select Dest Folder</label>
-            <span id="dest-folder" class="folder-name"></span>
+            <button class="btn" id="dest-folder">Select Dest Folder</button>
         </div>
 
         <div id="status"></div>
@@ -157,8 +163,10 @@
         </div>
 
         <div class="button-container">
-            <button id="previous">Previous</button>
-            <button id="next">Next</button>
+            <div class="nav-buttons">
+                <button id="previous">Previous</button>
+                <button id="next">Next</button>
+            </div>
         </div>
 
         <div class="button-container">
@@ -232,8 +240,7 @@
                 const originalBlob = await findOriginalFile(originalFolder, originalFileName);
                 originalImg.src = URL.createObjectURL(originalBlob);
 
-                // Assuming the background removed image has the same name but potentially different extension
-                const bgRemovedFileName = imageFiles[currentIndex].split('.').slice(0, -1).join('.') + '.png';
+                const bgRemovedFileName = imageFiles[currentIndex];
                 const bgRemovedFile = await bgRemovalFolder.getFileHandle(bgRemovedFileName);
                 const bgRemovedBlob = await bgRemovedFile.getFile();
                 bgRemovedImg.src = URL.createObjectURL(bgRemovedBlob);
@@ -267,20 +274,16 @@
 
             try {
                 const fileName = imageFiles[currentIndex];
-                const originalFile = await originalFolder.getFileHandle(fileName);
+                const bgRemovedFileName = await bgRemovalFolder.getFileHandle(fileName);
                 const moveFile = await destFolder.getFileHandle(fileName, { create: true });
 
-                const originalBlob = await originalFile.getFile();
+                const originalBlob = await bgRemovedFileName.getFile();
                 const writable = await moveFile.createWritable();
                 await writable.write(originalBlob);
                 await writable.close();
 
                 // Remove the file from the original folder
-                await originalFolder.removeEntry(fileName);
-
-                // Remove the corresponding background-removed image
-                const bgRemovedFileName = fileName.split('.').slice(0, -1).join('.') + '.png';
-                await bgRemovalFolder.removeEntry(bgRemovedFileName);
+                await bgRemovalFolder.removeEntry(fileName);
 
                 // Update the image list and display
                 imageFiles.splice(currentIndex, 1);
