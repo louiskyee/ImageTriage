@@ -5,108 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ImageTriage</title>
     <style>
-        :root {
-            --primary-color: #4a90e2;
-            --secondary-color: #f5a623;
-            --background-color: #f0f4f8;
-            --text-color: #333;
-        }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        h1 {
-            text-align: center;
-            color: var(--primary-color);
-            font-size: 2.5em;
-            margin-bottom: 30px;
-        }
-        .input-container {
+            font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 20px;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
         }
-        .btn {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.1s;
-            border-radius: 5px;
-            margin: 0 10px;
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        .btn:hover {
-            background-color: #3a7bc8;
+        .input-container {
+            margin-bottom: 10px;
         }
-        .btn:active {
-            transform: scale(0.98);
-        }
-        .btn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
+        .folder-name {
+            font-weight: bold;
         }
         #photo-container {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            margin-bottom: 20px;
-            transition: transform 0.3s;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
         }
-        #photo-container:hover {
-            transform: translateY(-5px);
-        }
-        #photo {
-            max-width: 100%;
-            max-height: 60vh;
-            display: block;
-            margin: 0 auto;
-            border-radius: 5px;
-        }
-        #status {
-            text-align: center;
-            font-size: 1.2em;
-            margin-bottom: 20px;
-            font-weight: bold;
-            color: var(--primary-color);
+        .photo {
+            max-width: 45%;
+            height: auto;
         }
         .button-container {
             display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
+            justify-content: space-between;
+            margin-top: 20px;
         }
-        #deny {
-            background-color: var(--secondary-color);
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
         }
-        #deny:hover {
-            background-color: #e09613;
-        }
-        .folder-name {
-            background-color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
-            margin-left: 10px;
-            font-size: 0.9em;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        .fade-in {
+            animation: fadeIn 0.5s;
         }
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
         }
     </style>
 </head>
@@ -115,135 +58,161 @@
         <h1>ImageTriage</h1>
 
         <div class="input-container">
-            <button id="select-source" class="btn">Select Source Folder</button>
-            <span id="source-folder" class="folder-name"></span>
+            <label for="source-folder">Select Source Folder:</label>
+            <input type="file" id="source-folder" webkitdirectory directory multiple>
+            <span id="source-folder-name" class="folder-name"></span>
         </div>
 
         <div class="input-container">
-            <button id="select-deny" class="btn">Select Deny Folder</button>
-            <span id="deny-folder" class="folder-name"></span>
+            <label for="bg-removal-folder">Select Background Removal Folder:</label>
+            <input type="file" id="bg-removal-folder" webkitdirectory directory multiple>
+            <span id="bg-removal-folder-name" class="folder-name"></span>
+        </div>
+
+        <div class="input-container">
+            <label for="dest-folder">Select Destination Folder:</label>
+            <input type="file" id="dest-folder" webkitdirectory directory multiple>
+            <span id="dest-folder-name" class="folder-name"></span>
         </div>
 
         <div id="status"></div>
 
         <div id="photo-container">
-            <img id="photo" src="" alt="Current photo" class="fade-in">
+            <img id="original-photo" class="photo fade-in" alt="Original photo">
+            <img id="bg-removal-photo" class="photo fade-in" alt="Background removed photo">
         </div>
 
         <div class="button-container">
-            <button id="previous" class="btn" disabled>Previous</button>
-            <button id="next" class="btn" disabled>Next</button>
+            <button id="previous-button">Previous</button>
+            <button id="next-button">Next</button>
         </div>
 
         <div class="button-container">
-            <button id="deny" class="btn" disabled>Deny</button>
+            <button id="move-button">Move</button>
         </div>
     </div>
-    
+
     <script>
-        let sourceFolder, denyFolder;
-        let photos = [];
+        let sourceFiles = [];
+        let bgRemovalFiles = [];
         let currentIndex = 0;
+        let destFolder;
 
-        const sourceFolderBtn = document.getElementById('select-source');
-        const denyFolderBtn = document.getElementById('select-deny');
-        const previousBtn = document.getElementById('previous');
-        const nextBtn = document.getElementById('next');
-        const denyBtn = document.getElementById('deny');
-        const statusDiv = document.getElementById('status');
-        const photoImg = document.getElementById('photo');
+        const sourceFolderInput = document.getElementById('source-folder');
+        const bgRemovalFolderInput = document.getElementById('bg-removal-folder');
+        const destFolderInput = document.getElementById('dest-folder');
+        const sourceFolderName = document.getElementById('source-folder-name');
+        const bgRemovalFolderName = document.getElementById('bg-removal-folder-name');
+        const destFolderName = document.getElementById('dest-folder-name');
+        const statusElement = document.getElementById('status');
+        const originalPhoto = document.getElementById('original-photo');
+        const bgRemovalPhoto = document.getElementById('bg-removal-photo');
+        const previousButton = document.getElementById('previous-button');
+        const nextButton = document.getElementById('next-button');
+        const moveButton = document.getElementById('move-button');
 
-        sourceFolderBtn.addEventListener('click', selectSourceFolder);
-        denyFolderBtn.addEventListener('click', selectDenyFolder);
-        previousBtn.addEventListener('click', () => navigate('previous'));
-        nextBtn.addEventListener('click', () => navigate('next'));
-        denyBtn.addEventListener('click', denyPhoto);
+        sourceFolderInput.addEventListener('change', handleSourceFolderSelect);
+        bgRemovalFolderInput.addEventListener('change', handleBgRemovalFolderSelect);
+        destFolderInput.addEventListener('change', handleDestFolderSelect);
+        previousButton.addEventListener('click', showPreviousImage);
+        nextButton.addEventListener('click', showNextImage);
+        moveButton.addEventListener('click', moveCurrentImage);
 
-        async function selectSourceFolder() {
-            try {
-                sourceFolder = await window.showDirectoryPicker();
-                document.getElementById('source-folder').textContent = sourceFolder.name;
-                await loadPhotos();
-                checkFoldersSelected();
-            } catch (err) {
-                console.error('Error selecting source folder:', err);
-            }
-        }
-
-        async function selectDenyFolder() {
-            try {
-                denyFolder = await window.showDirectoryPicker();
-                document.getElementById('deny-folder').textContent = denyFolder.name;
-                checkFoldersSelected();
-            } catch (err) {
-                console.error('Error selecting deny folder:', err);
-            }
-        }
-
-        function checkFoldersSelected() {
-            const bothSelected = sourceFolder && denyFolder;
-            previousBtn.disabled = !bothSelected;
-            nextBtn.disabled = !bothSelected;
-            denyBtn.disabled = !bothSelected;
-            if (bothSelected) {
-                showPhoto();
-            }
-        }
-
-        async function loadPhotos() {
-            photos = [];
-            for await (const entry of sourceFolder.values()) {
-                if (entry.kind === 'file' && entry.name.match(/\.(jpe?g|png|gif)$/i)) {
-                    photos.push(entry);
+        async function handleSourceFolderSelect() {
+            const dirHandle = await window.showDirectoryPicker();
+            sourceFiles = [];
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file' && entry.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                    sourceFiles.push(entry);
                 }
             }
-            currentIndex = 0;
+            sourceFolderName.textContent = dirHandle.name;
+            updateStatus();
+            showCurrentImage();
         }
 
-        async function showPhoto() {
-            if (currentIndex < photos.length) {
-                const file = await photos[currentIndex].getFile();
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    photoImg.src = e.target.result;
+        async function handleBgRemovalFolderSelect() {
+            const dirHandle = await window.showDirectoryPicker();
+            bgRemovalFiles = [];
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file' && entry.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                    bgRemovalFiles.push(entry);
                 }
-                reader.readAsDataURL(file);
-                updateStatus();
-            } else {
-                photoImg.src = '';
-                statusDiv.textContent = 'No more photos to sort!';
             }
+            bgRemovalFolderName.textContent = dirHandle.name;
+            updateStatus();
+            showCurrentImage();
+        }
+
+        async function handleDestFolderSelect() {
+            destFolder = await window.showDirectoryPicker();
+            destFolderName.textContent = destFolder.name;
+            updateStatus();
         }
 
         function updateStatus() {
-            statusDiv.textContent = `Photo ${currentIndex + 1} of ${photos.length}`;
+            statusElement.textContent = `${sourceFiles.length} images in source folder, ${bgRemovalFiles.length} images in background removal folder`;
         }
 
-        function navigate(direction) {
-            if (direction === 'previous' && currentIndex > 0) {
-                currentIndex--;
-            } else if (direction === 'next' && currentIndex < photos.length - 1) {
-                currentIndex++;
+        async function showCurrentImage() {
+            if (sourceFiles.length > 0 && bgRemovalFiles.length > 0) {
+                const sourceFile = await sourceFiles[currentIndex].getFile();
+                const bgRemovalFile = await bgRemovalFiles[currentIndex].getFile();
+
+                originalPhoto.src = URL.createObjectURL(sourceFile);
+                bgRemovalPhoto.src = URL.createObjectURL(bgRemovalFile);
+
+                originalPhoto.onload = () => URL.revokeObjectURL(originalPhoto.src);
+                bgRemovalPhoto.onload = () => URL.revokeObjectURL(bgRemovalPhoto.src);
             }
-            showPhoto();
         }
 
-        async function denyPhoto() {
+        function showPreviousImage() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                showCurrentImage();
+            }
+        }
+
+        function showNextImage() {
+            if (currentIndex < sourceFiles.length - 1) {
+                currentIndex++;
+                showCurrentImage();
+            }
+        }
+
+        async function moveCurrentImage() {
+            if (bgRemovalFiles.length > 0 && destFolder) {
+                try {
+                    await moveFile(bgRemovalFiles[currentIndex], destFolder);
+
+                    bgRemovalFiles.splice(currentIndex, 1);
+                    sourceFiles.splice(currentIndex, 1);
+
+                    if (currentIndex >= bgRemovalFiles.length) {
+                        currentIndex = bgRemovalFiles.length - 1;
+                    }
+
+                    updateStatus();
+                    showCurrentImage();
+                } catch (error) {
+                    console.error('Error moving file:', error);
+                    statusElement.textContent = 'Error moving file';
+                }
+            }
+        }
+
+        async function moveFile(fileHandle, destFolderHandle) {
             try {
-                const file = await photos[currentIndex].getFile();
-                const newHandle = await denyFolder.getFileHandle(photos[currentIndex].name, { create: true });
+                const file = await fileHandle.getFile();
+                const newHandle = await destFolderHandle.getFileHandle(fileHandle.name, { create: true });
                 const writable = await newHandle.createWritable();
                 await writable.write(file);
                 await writable.close();
-                await photos[currentIndex].remove();
-                photos.splice(currentIndex, 1);
-                if (currentIndex >= photos.length) {
-                    currentIndex = photos.length - 1;
-                }
-                showPhoto();
+                await fileHandle.remove();
             } catch (err) {
                 console.error('Error moving file:', err);
-                alert('Error moving file. Please check console for details.');
+                throw err;
             }
         }
     </script>
